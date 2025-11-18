@@ -2,371 +2,635 @@
 
 合宿・リトリート・オフライン会をAIがプランニングし、日程・プログラム・部屋割りまで提案するプランナー。
 
-A comprehensive system for designing multi-day retreats, camps, and in-person gatherings with AI-powered scheduling assistance.
+A comprehensive system for designing, managing, and executing multi-day transformative gatherings such as retreats, camps, workshops, and intentional community events.
+
+**Status**: Phase 3 Complete ✅ - Production-ready with full lifecycle management
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Domain Model](#domain-model)
+- [Getting Started](#getting-started)
+- [API Documentation](#api-documentation)
+- [Usage Examples](#usage-examples)
+- [CLI Tools](#cli-tools)
+- [Extension & Integration](#extension--integration)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+
+---
+
+## Overview
+
+The AI Retreat Planner provides end-to-end tools for retreat organizers:
+
+1. **Multi-tenant Communities**: Organize retreats across different communities with isolated data
+2. **Reusable Templates**: Create and apply templates for recurring retreat patterns
+3. **AI Schedule Generation**: Leverage GPT-4 to create balanced, thoughtful retreat schedules
+4. **Participant Management**: Register, approve, and communicate with attendees
+5. **Smart Room Assignment**: Auto-assign participants to rooms based on capacity and preferences
+6. **Feedback Collection**: Gather post-retreat insights and improve future events
+7. **Complete Lifecycle**: From ideation → planning → execution → retrospective
+
+This system is designed as a building block in a larger "community civilization OS" ecosystem, with clean integration points for auth, notifications, payments, and more.
+
+---
 
 ## Features
 
-### 1. Blueprint Creation
-Create retreat blueprints with:
-- Name and description
-- Number of days
-- Estimated participant count
-- Location constraints (stored as JSON)
-- Community association
+### 🏛️ Multi-Tenant Communities
 
-### 2. AI-Powered Schedule Generation
+- **Community Management**: Organize retreats under different communities
+- **Isolated Data**: Each community has its own participants, templates, and blueprints
+- **Community Settings**: Customizable preferences (timezone, default capacity, etc.)
+
+### 📋 Blueprint Management
+
+Create detailed retreat plans with:
+- Name, description (Markdown), and tags
+- Duration (1-30 days)
+- Participant capacity and estimates
+- Location constraints
+- Status tracking (draft, planned, active, completed, archived, cancelled)
+- Start and end dates
+- Cancellation policies
+
+### 🎯 Template System
+
+- **Create Templates**: Extract proven patterns from successful retreats
+- **Apply Templates**: Instantly instantiate retreats from templates
+- **Public/Private**: Share templates across communities or keep them private
+- **Usage Tracking**: Monitor how often templates are used
+- **Customization**: Apply templates then customize for specific needs
+
+### 🤖 AI-Powered Schedule Generation
+
 - **Endpoint**: `POST /api/blueprints/:id/ai-generate-schedule`
-- Uses LLM (OpenAI GPT-4) to generate thoughtful, balanced schedules
-- Considers constraints like participant count, retreat focus, and duration
-- Generates day themes and session breakdowns with appropriate timing
+- **Intelligent Planning**: GPT-4 generates balanced schedules considering:
+  - Participant count and energy levels
+  - Inner work vs. social focus preferences
+  - Physical activity requirements
+  - Custom requirements
+- **Session Diversity**: Automatically varies session types (circles, talks, rituals, meals, breaks, free time)
+- **Time Management**: Proper pacing, breaks, and transitions
+- **Robust Parsing**: Validated output with comprehensive error handling
 
-### 3. Rich Schedule Model
-Each retreat schedule includes:
-- **Day Plans**: Themed daily structures with notes
-- **Sessions**: Individual program blocks with:
-  - Title and type (circle, talk, break, meal, ritual, free)
-  - Start/end times (local time format)
-  - Optional facilitator assignment
-  - Flexible metadata (stored as JSON)
+### 👥 Participant Management
 
-### 4. Logistics Planning
-Track essential retreat logistics:
-- Accommodation
-- Transport
-- Meals
-- Materials
-- Other items
-- Cost estimates for budgeting
+- **Participant Profiles**: Name, email, phone, bio, dietary preferences, accessibility needs
+- **Role-Based**: Participants, facilitators, organizers, support staff
+- **Registration Flow**: Register → Pending → Approved/Waitlisted/Rejected
+- **Capacity Management**: Automatic waitlist when retreat is full
+- **Communication**: Automated notifications at each stage (via adapters)
 
-### 5. Modern Web UI
-- Browse all retreat blueprints
-- View detailed schedules in day-by-day layout
-- Generate AI schedules with one click
-- Color-coded session types for easy scanning
-- Mobile-responsive design
+### 🏠 Room Assignment
+
+- **Room Definition**: Create rooms with type, capacity, floor, amenities
+- **Manual Assignment**: Assign specific participants to specific rooms/beds
+- **Auto-Assignment**: Algorithmic assignment based on capacity
+- **Utilization Tracking**: Real-time room occupancy statistics
+- **Preferences**: Store roommate preferences for future enhancement
+
+### 📊 Feedback & Analytics
+
+- **Custom Forms**: Create feedback forms with multiple question types
+- **Post-Retreat Collection**: Open/close feedback windows
+- **Response Tracking**: Monitor who has submitted feedback
+- **Future Analytics**: Foundation for sentiment analysis and improvement insights
+
+### 🎨 Modern Web UI
+
+- Browse all retreat blueprints with filters
+- Detailed schedule views with color-coded sessions
+- Template application interface
+- Participant registration flow
+- Room assignment dashboard
+- One-click AI schedule generation
+
+---
 
 ## Tech Stack
 
-- **Framework**: Next.js 16 (App Router)
-- **Language**: TypeScript
-- **Database**: PostgreSQL
-- **ORM**: Prisma
-- **AI**: OpenAI API (GPT-4)
-- **Styling**: Tailwind CSS
-- **Testing**: Jest
+### Core
+- **Next.js 16** (App Router) - Full-stack framework
+- **TypeScript** - Type safety throughout
+- **PostgreSQL** - Primary database
+- **Prisma** - Type-safe ORM
 
-## Architecture
+### AI & External Services
+- **OpenAI API** (GPT-4) - Schedule generation
+- **Zod** - Runtime validation
+- **Adapter Pattern** - Pluggable integrations (email, calendar, payments, storage)
 
-### Domain Model
+### Developer Experience
+- **Jest** - Testing framework
+- **Commander** - CLI tools
+- **Docker Compose** - Local development
+- **ESLint** - Code quality
+- **Tailwind CSS** - Styling
+
+---
+
+## Domain Model
+
+### Core Entities
 
 ```
-RetreatBlueprint
-├── dayPlans (RetreatDayPlan[])
-│   └── sessions (RetreatSession[])
-└── logisticsItems (LogisticsItem[])
+Community
+├── RetreatBlueprint
+│   ├── RetreatDayPlan
+│   │   └── RetreatSession
+│   ├── LogisticsItem
+│   ├── Room
+│   │   └── RoomAssignment
+│   ├── Registration
+│   └── FeedbackForm
+│       └── FeedbackResponse
+├── RetreatTemplate
+└── Participant
+    ├── Registration
+    ├── RoomAssignment
+    └── FeedbackResponse
 ```
 
-#### RetreatBlueprint
-- `id`: Unique identifier
-- `communityId`: Optional community association
-- `name`: Retreat name
-- `descriptionMarkdown`: Rich description
-- `daysCount`: Number of days
-- `participantCountEstimate`: Expected attendees
-- `locationConstraintsJson`: Flexible location preferences
-- `createdAt`, `updatedAt`: Timestamps
+### Enums
 
-#### RetreatDayPlan
-- `id`: Unique identifier
-- `blueprintId`: Parent blueprint
-- `dayIndex`: Day number (0-indexed)
-- `theme`: Daily theme/focus
-- `notesMarkdown`: Additional notes
+**RetreatStatus**: `draft | planned | active | completed | archived | cancelled`
 
-#### RetreatSession
-- `id`: Unique identifier
-- `dayPlanId`: Parent day plan
-- `title`: Session name
-- `sessionType`: Enum (circle, talk, break, meal, ritual, free)
-- `startTimeLocal`, `endTimeLocal`: Time format (HH:MM)
-- `facilitatorName`: Optional facilitator
-- `metaJson`: Flexible metadata for session-specific data
+**SessionType**: `circle | talk | break | meal | ritual | free`
 
-#### LogisticsItem
-- `id`: Unique identifier
-- `blueprintId`: Parent blueprint
-- `itemType`: Enum (accommodation, transport, meal, materials, other)
-- `descriptionMarkdown`: Rich description
-- `costEstimate`: Optional budget amount
-- `metaJson`: Flexible metadata
+**LogisticsItemType**: `accommodation | transport | meal | materials | other`
 
-### API Routes
+**RoomType**: `single | double | dormitory | tent | other`
 
-#### Blueprints
-- `GET /api/blueprints` - List all blueprints
-- `POST /api/blueprints` - Create new blueprint
-- `GET /api/blueprints/:id` - Get blueprint details
-- `DELETE /api/blueprints/:id` - Delete blueprint
+**ParticipantRole**: `participant | facilitator | organizer | support_staff`
 
-#### AI Generation
-- `POST /api/blueprints/:id/ai-generate-schedule` - Generate schedule with AI
-  - Request body (optional):
-    ```json
-    {
-      "preferences": {
-        "innerWorkFocus": 7,
-        "socialFocus": 6,
-        "physicalActivity": 5,
-        "customRequirements": "Include daily meditation"
-      }
-    }
-    ```
+**RegistrationStatus**: `pending | approved | waitlisted | rejected | cancelled`
 
-### AI Scheduler
+See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for detailed architectural documentation.
 
-The AI scheduler (`lib/ai-scheduler.ts`) uses OpenAI's GPT-4 to generate retreat schedules:
-
-**Key Features**:
-- Structured JSON output with strict validation
-- Time format validation (HH:MM)
-- Session type normalization
-- Robust error handling
-- Comprehensive testing
-
-**Principles Applied by AI**:
-- Balance structured activities with free time
-- Include proper meal times and breaks
-- Vary session types for engagement
-- Build energy intentionally throughout the retreat
-- Allow integration time after intense sessions
-- Consider group size for different activities
+---
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js 20+
-- PostgreSQL 15+
-- OpenAI API key
+
+- **Node.js** 20+
+- **PostgreSQL** 15+
+- **OpenAI API Key** (for AI schedule generation)
 
 ### Installation
 
-1. Clone the repository:
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd ai-hosted-retreat-planner
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   cp .env.local.example .env.local
+   ```
+
+   Edit `.env.local` and add:
+   - `DATABASE_URL` - PostgreSQL connection string
+   - `OPENAI_API_KEY` - Your OpenAI API key
+   - `OPENAI_MODEL` - Model to use (default: gpt-4)
+
+4. **Start PostgreSQL** (with Docker)
+   ```bash
+   docker-compose up -d
+   ```
+
+5. **Run database migrations**
+   ```bash
+   npm run db:push
+   ```
+
+6. **Generate Prisma client**
+   ```bash
+   npm run db:generate
+   ```
+
+7. **Seed the database** (with comprehensive demo data)
+   ```bash
+   npm run db:seed
+   ```
+
+8. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+9. **Open the app**
+
+   Visit [http://localhost:3000](http://localhost:3000)
+
+### Quick Setup Script
+
+Alternatively, use the automated setup script:
+
 ```bash
-git clone <repository-url>
-cd ai-hosted-retreat-planner
+./scripts/setup.sh
 ```
 
-2. Install dependencies:
+---
+
+## API Documentation
+
+### Blueprints
+
+- `GET /api/blueprints` - List all blueprints
+- `POST /api/blueprints` - Create a blueprint
+- `GET /api/blueprints/:id` - Get blueprint details
+- `DELETE /api/blueprints/:id` - Delete a blueprint
+- `POST /api/blueprints/:id/ai-generate-schedule` - Generate AI schedule
+
+### Templates
+
+- `GET /api/templates` - List templates (query: communityId, isPublic, tags)
+- `POST /api/templates` - Create a template
+- `POST /api/templates/:id/apply` - Apply template to create blueprint
+
+### Participants
+
+- `GET /api/participants` - List participants (query: communityId, role, tags)
+- `POST /api/participants` - Create a participant
+
+### Registrations
+
+- `POST /api/registrations` - Register participant for retreat
+
+### Rooms
+
+- `GET /api/blueprints/:id/rooms` - List rooms for a blueprint
+- `POST /api/blueprints/:id/rooms` - Create a room
+- `POST /api/blueprints/:id/rooms/assign` - Assign participant to room (or auto-assign)
+
+All endpoints support:
+- **Validation**: Zod schemas for input validation
+- **Error Handling**: Consistent error responses with HTTP codes
+- **Logging**: Structured logging with context
+- **Metrics**: Counters and histograms for observability
+
+See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for request/response examples.
+
+---
+
+## Usage Examples
+
+### 1. Create a Community
+
 ```bash
-npm install
+curl -X POST http://localhost:3000/api/communities \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Mindful Living Collective",
+    "slug": "mindful-living",
+    "description": "A community focused on contemplative practices"
+  }'
 ```
 
-3. Set up environment variables:
-```bash
-cp .env.local.example .env.local
-```
-
-Edit `.env.local` with your values:
-- `DATABASE_URL`: PostgreSQL connection string
-- `OPENAI_API_KEY`: Your OpenAI API key
-- `OPENAI_MODEL`: Model to use (default: gpt-4)
-
-4. Start PostgreSQL with Docker (optional):
-```bash
-docker-compose up -d
-```
-
-5. Run database migrations:
-```bash
-npx prisma db push
-```
-
-6. Generate Prisma client:
-```bash
-npm run db:generate
-```
-
-7. Seed the database with demo data:
-```bash
-npm run db:seed
-```
-
-8. Start the development server:
-```bash
-npm run dev
-```
-
-Visit http://localhost:3000 to see the application.
-
-### Database Management
+### 2. Create a Template
 
 ```bash
-# Generate Prisma client after schema changes
-npm run db:generate
-
-# Push schema changes to database (development)
-npm run db:push
-
-# Create and run migrations (production)
-npm run db:migrate
-
-# Seed demo data
-npm run db:seed
+curl -X POST http://localhost:3000/api/templates \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "3-Day Inner Work Intensive",
+    "daysCount": 3,
+    "suggestedCapacity": 24,
+    "tags": ["inner-work", "meditation"],
+    "isPublic": true,
+    "templateData": {
+      "dayPlans": [...],
+      "logisticsItems": [...]
+    }
+  }'
 ```
+
+### 3. Apply a Template
+
+```bash
+curl -X POST http://localhost:3000/api/templates/{template-id}/apply \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Spring Inner Work Retreat 2025",
+    "startDate": "2025-04-15T14:00:00Z"
+  }'
+```
+
+### 4. Register a Participant
+
+```bash
+curl -X POST http://localhost:3000/api/registrations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "blueprintId": "{blueprint-id}",
+    "participantData": {
+      "email": "alice@example.com",
+      "name": "Alice Chen",
+      "preferences": {
+        "dietary": ["vegetarian"],
+        "accessibility": ["none"]
+      }
+    }
+  }'
+```
+
+### 5. Auto-Assign Rooms
+
+```bash
+curl -X POST http://localhost:3000/api/blueprints/{id}/rooms/assign \
+  -H "Content-Type: application/json" \
+  -d '{
+    "autoAssign": true,
+    "prioritizePreferences": true
+  }'
+```
+
+---
+
+## CLI Tools
+
+The project includes a CLI for common operations:
+
+```bash
+npm run cli -- [command]
+```
+
+### Available Commands
+
+- `cli clear` - Clear all data from database
+- `cli list:communities` - List all communities with stats
+- `cli list:blueprints` - List all blueprints (filter with `-s draft`)
+- `cli show:retreat <id>` - Show detailed retreat information
+- `cli health` - Run health checks and show statistics
+- `cli export:blueprint <id>` - Export blueprint to JSON
+
+### Examples
+
+```bash
+# List all blueprints with draft status
+npm run cli -- list:blueprints -s draft
+
+# Show details of a specific retreat
+npm run cli -- show:retreat clxy123abc
+
+# Run health check
+npm run cli -- health
+
+# Export blueprint
+npm run cli -- export:blueprint clxy123abc > retreat.json
+```
+
+---
+
+## Extension & Integration
+
+The system is designed for easy integration with external services through **adapters** and **domain events**.
+
+### Adapters
+
+Swap implementations for external services:
+
+```typescript
+// Notifications (Email, SMS, Push)
+import { setNotificationAdapter } from "@/lib/adapters/notification";
+import { SendGridAdapter } from "@/lib/adapters/notification-sendgrid";
+setNotificationAdapter(new SendGridAdapter(apiKey));
+
+// Calendar Sync (Google Calendar, iCal)
+import { setCalendarAdapter } from "@/lib/adapters/calendar";
+setCalendarAdapter(new GoogleCalendarAdapter(credentials));
+
+// Payments (Stripe, PayPal)
+import { setPaymentAdapter } from "@/lib/adapters/payment";
+setPaymentAdapter(new StripeAdapter(apiKey));
+
+// File Storage (S3, Azure Blob)
+import { setStorageAdapter } from "@/lib/adapters/storage";
+setStorageAdapter(new S3StorageAdapter(config));
+```
+
+### Domain Events
+
+React to system events:
+
+```typescript
+import { eventEmitter } from "@/lib/events/emitter";
+
+// Send email when participant registers
+eventEmitter.on("participant.registered", async (event) => {
+  const { participantEmail, blueprintId } = event.data;
+
+  await sendEmail({
+    to: participantEmail,
+    subject: "Registration Received!",
+    body: "Thank you for registering...",
+  });
+});
+
+// Sync to calendar when schedule is generated
+eventEmitter.on("schedule.generated", async (event) => {
+  await syncToCalendar(event.data.blueprintId);
+});
+```
+
+**Available Events**:
+- `blueprint.created`
+- `blueprint.status_changed`
+- `schedule.generated`
+- `participant.registered`
+- `registration.approved`
+- `room.assigned`
+- `feedback.submitted`
+- `template.created`
+- `template.applied`
+
+See [docs/INTEGRATION_RECIPES.md](./docs/INTEGRATION_RECIPES.md) for detailed integration examples.
+
+---
 
 ## Testing
 
-Run the test suite:
-```bash
-npm test
-```
+### Run Tests
 
-Run tests in watch mode:
 ```bash
+# All tests
+npm test
+
+# Watch mode
 npm run test:watch
 ```
 
-The test suite includes comprehensive validation tests for AI output parsing to ensure robust schedule generation.
+### Test Coverage
 
-## Development Workflow
+- **Unit Tests**: Validation logic, domain services, AI parsing
+- **Integration Tests**: API routes, database operations
+- **Test Factories**: Comprehensive test data generators
 
-### Creating a New Blueprint
+### Writing Tests
 
-1. Navigate to `/blueprints`
-2. Click "Create New Blueprint"
-3. Fill in retreat details
-4. Save the blueprint
-
-### Generating a Schedule
-
-1. Open a blueprint detail page
-2. Click "Generate AI Schedule"
-3. Wait for AI to generate the schedule
-4. Review and adjust as needed
-
-### Customizing AI Generation
-
-The AI generation can be customized by modifying:
-- System prompt in `lib/ai-scheduler.ts`
-- Preferences passed to the API endpoint
-- Validation rules for session types and times
-
-## Integration with ritual-event-orchestrator
-
-This retreat planner is designed to integrate with the **ritual-event-orchestrator** system for executing retreat schedules in real-time.
-
-### Schedule Export Format
-
-The schedule model can be exported to a format compatible with the ritual-event-orchestrator:
+Use test factories for consistent data:
 
 ```typescript
-// Example integration
-function exportToOrchestrator(blueprint: RetreatBlueprint) {
-  return {
-    eventId: blueprint.id,
-    eventName: blueprint.name,
-    days: blueprint.dayPlans.map(day => ({
-      date: calculateDate(day.dayIndex),
-      theme: day.theme,
-      blocks: day.sessions.map(session => ({
-        id: session.id,
-        title: session.title,
-        type: session.sessionType,
-        startTime: session.startTimeLocal,
-        endTime: session.endTimeLocal,
-        facilitator: session.facilitatorName,
-        metadata: session.metaJson,
-      })),
-    })),
-  };
-}
+import { TestDataFactory } from "@/__tests__/factories";
+import { prisma } from "@/lib/prisma";
+
+const factory = new TestDataFactory(prisma);
+
+const blueprint = await factory.createCompleteBlueprint({
+  name: "Test Retreat",
+  daysCount: 3,
+});
 ```
 
-### Key Integration Points
+---
 
-1. **Session Types**: The session types (circle, talk, break, meal, ritual, free) map directly to event block types in the orchestrator
-2. **Time Format**: HH:MM format is used consistently for easy parsing
-3. **Metadata**: The `metaJson` field allows storing orchestrator-specific data (e.g., room assignments, Zoom links)
-4. **Real-time Updates**: The orchestrator can poll the blueprint API for schedule updates
+## Deployment
 
-### Future Enhancements
+### Development
 
-- **Webhook Integration**: Notify orchestrator when schedules change
-- **Room Assignment**: Add room/space allocation to sessions
-- **Participant Management**: Track individual participant schedules
-- **Live Updates**: WebSocket support for real-time schedule changes during retreats
+```bash
+# With Docker Compose
+docker-compose up
+
+# Or manually
+npm run dev
+```
+
+### Production
+
+**Option 1: Vercel** (Recommended for Next.js)
+
+1. Connect GitHub repository to Vercel
+2. Set environment variables (DATABASE_URL, OPENAI_API_KEY)
+3. Deploy
+
+**Option 2: Docker**
+
+```bash
+# Build image
+docker build -t retreat-planner .
+
+# Run container
+docker run -p 3000:3000 \
+  -e DATABASE_URL="..." \
+  -e OPENAI_API_KEY="..." \
+  retreat-planner
+```
+
+**Database**: Use managed PostgreSQL (AWS RDS, Supabase, Neon, etc.)
+
+---
 
 ## Project Structure
 
 ```
 ai-hosted-retreat-planner/
 ├── app/                      # Next.js app directory
-│   ├── api/                 # API routes
-│   │   └── blueprints/      # Blueprint endpoints
-│   ├── blueprints/          # Blueprint pages
-│   ├── layout.tsx           # Root layout
-│   ├── page.tsx             # Home page
-│   └── globals.css          # Global styles
-├── components/              # React components
-│   └── GenerateScheduleButton.tsx
-├── lib/                     # Shared utilities
-│   ├── prisma.ts           # Prisma client
-│   ├── ai-scheduler.ts     # AI scheduling logic
-│   └── types.ts            # TypeScript types
-├── prisma/                  # Database schema & migrations
-│   ├── schema.prisma       # Prisma schema
-│   └── seed.ts             # Seed data
-├── __tests__/              # Test files
-│   └── ai-scheduler.test.ts
-├── docker-compose.yml      # PostgreSQL container
-├── Dockerfile              # Application container
-└── README.md               # This file
+│   ├── api/                  # API routes
+│   │   ├── blueprints/       # Blueprint endpoints
+│   │   ├── templates/        # Template endpoints
+│   │   ├── participants/     # Participant endpoints
+│   │   └── registrations/    # Registration endpoints
+│   ├── blueprints/           # Blueprint pages
+│   ├── layout.tsx            # Root layout
+│   └── page.tsx              # Home page
+├── lib/                      # Shared libraries
+│   ├── adapters/             # External service adapters
+│   │   ├── notification.ts
+│   │   ├── calendar.ts
+│   │   ├── payment.ts
+│   │   └── storage.ts
+│   ├── events/               # Domain events
+│   │   ├── types.ts
+│   │   └── emitter.ts
+│   ├── services/             # Business logic
+│   │   ├── template-service.ts
+│   │   ├── participant-service.ts
+│   │   └── room-assignment-service.ts
+│   ├── validation.ts         # Zod schemas
+│   ├── errors.ts             # Error classes
+│   ├── logger.ts             # Logging
+│   ├── metrics.ts            # Metrics
+│   ├── ai-scheduler.ts       # AI integration
+│   └── prisma.ts             # Prisma client
+├── components/               # React components
+├── prisma/                   # Database
+│   ├── schema.prisma         # Prisma schema
+│   ├── seed.ts               # Simple seed
+│   └── seed-expanded.ts      # Comprehensive demo data
+├── scripts/                  # Utilities
+│   ├── cli.ts                # CLI tool
+│   └── setup.sh              # Setup script
+├── __tests__/                # Tests
+│   ├── factories.ts          # Test data factories
+│   └── *.test.ts             # Test files
+├── docs/                     # Documentation
+│   ├── ARCHITECTURE.md       # Architecture guide
+│   ├── INTEGRATION_RECIPES.md # Integration examples
+│   └── PHASE3_OVERVIEW.md    # Phase 3 summary
+├── docker-compose.yml        # PostgreSQL setup
+├── Dockerfile                # App container
+└── README.md                 # This file
 ```
 
-## Production Deployment
+---
 
-### Database
+## Integration with Ecosystem
 
-1. Create a PostgreSQL database
-2. Set `DATABASE_URL` environment variable
-3. Run migrations: `npx prisma migrate deploy`
+This retreat planner integrates with:
 
-### Environment Variables
+- **ritual-event-orchestrator**: Real-time retreat execution
+- **auth-service**: User authentication
+- **notification-hub**: Email/SMS communication
+- **payment-service**: Registration payments
+- **community-platform**: Member profiles
+- **analytics-service**: Metrics and insights
 
-Required for production:
-- `DATABASE_URL`: PostgreSQL connection string
-- `OPENAI_API_KEY`: OpenAI API key
-- `OPENAI_MODEL`: Model to use
-- `NEXT_PUBLIC_BASE_URL`: Your app URL
+See [docs/INTEGRATION_RECIPES.md](./docs/INTEGRATION_RECIPES.md) for integration guides.
 
-### Build & Deploy
-
-```bash
-# Build the application
-npm run build
-
-# Start production server
-npm start
-```
-
-For Docker deployment:
-```bash
-docker build -t retreat-planner .
-docker run -p 3000:3000 retreat-planner
-```
+---
 
 ## Contributing
+
+Contributions are welcome! Please:
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Write tests for new functionality
-5. Submit a pull request
+4. Add tests for new functionality
+5. Ensure all tests pass (`npm test`)
+6. Submit a pull request
+
+---
 
 ## License
 
-See LICENSE file for details.
+See [LICENSE](./LICENSE) file for details.
 
-## Support
+---
 
-For issues and questions, please open an issue on the GitHub repository.
+## Support & Documentation
+
+- **Architecture**: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)
+- **Integration**: [docs/INTEGRATION_RECIPES.md](./docs/INTEGRATION_RECIPES.md)
+- **Phase 3 Overview**: [docs/PHASE3_OVERVIEW.md](./docs/PHASE3_OVERVIEW.md)
+
+For questions or issues, please open an issue on GitHub.
+
+---
+
+**Built with ❤️ for transformative communities**

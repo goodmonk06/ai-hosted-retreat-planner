@@ -9,19 +9,57 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum RetreatStatus {
+  draft
+  planned
+  active
+  completed
+  archived
+  cancelled
+}
+
+model Community {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  slug        String   @unique
+  settings    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  blueprints  RetreatBlueprint[]
+  templates   RetreatTemplate[]
+  participants Participant[]
+
+  @@map("communities")
+}
+
 model RetreatBlueprint {
-  id                      String             @id @default(cuid())
+  id                      String         @id @default(cuid())
   communityId             String?
+  templateId              String?
   name                    String
-  descriptionMarkdown     String?            @db.Text
+  descriptionMarkdown     String?        @db.Text
   daysCount               Int
   participantCountEstimate Int
+  actualParticipantCount  Int?
   locationConstraintsJson Json?
-  createdAt               DateTime           @default(now())
-  updatedAt               DateTime           @updatedAt
+  status                  RetreatStatus  @default(draft)
+  tags                    String[]
+  startDate               DateTime?
+  endDate                 DateTime?
+  cancellationPolicy      String?        @db.Text
+  maxCapacity             Int?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
 
+  community               Community?         @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  template                RetreatTemplate?   @relation(fields: [templateId], references: [id], onDelete: SetNull)
   dayPlans                RetreatDayPlan[]
   logisticsItems          LogisticsItem[]
+  registrations           Registration[]
+  rooms                   Room[]
+  feedbackForms           FeedbackForm[]
 
   @@map("retreat_blueprints")
 }
@@ -59,6 +97,8 @@ model RetreatSession {
   startTimeLocal  String         // Format: HH:MM
   endTimeLocal    String         // Format: HH:MM
   facilitatorName String?
+  capacity        Int?
+  location        String?
   metaJson        Json?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
@@ -89,4 +129,164 @@ model LogisticsItem {
   blueprint           RetreatBlueprint   @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
 
   @@map("logistics_items")
+}
+
+// Templates for reusable retreat patterns
+model RetreatTemplate {
+  id                  String   @id @default(cuid())
+  communityId         String?
+  name                String
+  descriptionMarkdown String?  @db.Text
+  daysCount           Int
+  suggestedCapacity   Int?
+  tags                String[]
+  isPublic            Boolean  @default(false)
+  usageCount          Int      @default(0)
+  templateData        Json     // Stores the complete template structure
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  community           Community?         @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  blueprints          RetreatBlueprint[]
+
+  @@map("retreat_templates")
+}
+
+// Participants/attendees
+enum ParticipantRole {
+  participant
+  facilitator
+  organizer
+  support_staff
+}
+
+model Participant {
+  id              String          @id @default(cuid())
+  communityId     String?
+  email           String
+  name            String
+  phoneNumber     String?
+  bio             String?         @db.Text
+  preferences     Json?           // Dietary, accessibility, etc.
+  tags            String[]
+  role            ParticipantRole @default(participant)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  community       Community?       @relation(fields: [communityId], references: [id], onDelete: SetNull)
+  registrations   Registration[]
+  roomAssignments RoomAssignment[]
+  feedbackResponses FeedbackResponse[]
+
+  @@unique([communityId, email])
+  @@map("participants")
+}
+
+// Registration for a specific retreat
+enum RegistrationStatus {
+  pending
+  approved
+  waitlisted
+  rejected
+  cancelled
+}
+
+model Registration {
+  id              String             @id @default(cuid())
+  blueprintId     String
+  participantId   String
+  status          RegistrationStatus @default(pending)
+  registeredAt    DateTime           @default(now())
+  approvedAt      DateTime?
+  notes           String?            @db.Text
+  paymentStatus   String?
+  metaJson        Json?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  blueprint       RetreatBlueprint   @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  participant     Participant        @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([blueprintId, participantId])
+  @@map("registrations")
+}
+
+// Room management
+enum RoomType {
+  single
+  double
+  dormitory
+  tent
+  other
+}
+
+model Room {
+  id              String   @id @default(cuid())
+  blueprintId     String
+  name            String
+  roomType        RoomType
+  capacity        Int
+  floor           String?
+  amenities       String[]
+  metaJson        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  blueprint       RetreatBlueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  assignments     RoomAssignment[]
+
+  @@map("rooms")
+}
+
+model RoomAssignment {
+  id              String      @id @default(cuid())
+  roomId          String
+  participantId   String
+  bedNumber       Int?
+  preferences     Json?
+  assignedAt      DateTime    @default(now())
+  assignedBy      String?     // User ID who made the assignment
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  room            Room        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  participant     Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, participantId])
+  @@map("room_assignments")
+}
+
+// Feedback collection
+model FeedbackForm {
+  id              String   @id @default(cuid())
+  blueprintId     String
+  title           String
+  descriptionMarkdown String? @db.Text
+  questions       Json     // Array of question objects
+  isActive        Boolean  @default(true)
+  openAt          DateTime?
+  closeAt         DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  blueprint       RetreatBlueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  responses       FeedbackResponse[]
+
+  @@map("feedback_forms")
+}
+
+model FeedbackResponse {
+  id              String      @id @default(cuid())
+  formId          String
+  participantId   String
+  answers         Json        // Map of question ID to answer
+  submittedAt     DateTime    @default(now())
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  form            FeedbackForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+  participant     Participant  @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([formId, participantId])
+  @@map("feedback_responses")
 }

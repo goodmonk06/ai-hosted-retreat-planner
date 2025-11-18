@@ -11,9 +11,11 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:seed": "tsx prisma/seed-expanded.ts",
+    "db:seed:simple": "tsx prisma/seed.ts",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "cli": "tsx scripts/cli.ts"
   },
   "repository": {
     "type": "git",
@@ -24,10 +26,12 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^6.19.0",
+    "commander": "^14.0.2",
     "next": "^16.0.3",
     "openai": "^6.9.1",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

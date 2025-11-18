@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateRetreatSchedule } from "@/lib/ai-scheduler";
 import { AIScheduleRequest } from "@/lib/types";
+import { generateScheduleSchema } from "@/lib/validation";
+import { formatError, NotFoundError } from "@/lib/errors";
+import { logger } from "@/lib/logger";
+import { metrics, measureAsync } from "@/lib/metrics";
 
 export async function POST(
   request: NextRequest,
@@ -9,6 +13,12 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
+
+    // Validate request body
+    const body = await request.json().catch(() => ({}));
+    const validatedData = generateScheduleSchema.parse(body);
+
+    logger.info("Generating AI schedule", { blueprintId: id });
 
     // Get the blueprint
     const blueprint = await prisma.retreatBlueprint.findUnique({
@@ -23,26 +33,23 @@ export async function POST(
     });
 
     if (!blueprint) {
-      return NextResponse.json(
-        { error: "Blueprint not found" },
-        { status: 404 }
-      );
+      throw new NotFoundError("Blueprint not found");
     }
-
-    // Parse request body for preferences
-    const body = await request.json().catch(() => ({}));
-    const preferences = body.preferences || {};
 
     // Prepare AI request
     const aiRequest: AIScheduleRequest = {
       blueprintId: blueprint.id,
       daysCount: blueprint.daysCount,
       participantCount: blueprint.participantCountEstimate,
-      preferences,
+      preferences: validatedData.preferences || {},
     };
 
-    // Generate schedule using AI
-    const aiResponse = await generateRetreatSchedule(aiRequest);
+    // Generate schedule using AI with metrics
+    const aiResponse = await measureAsync(
+      "ai_schedule_generation",
+      () => generateRetreatSchedule(aiRequest),
+      { blueprintId: id }
+    );
 
     // Delete existing day plans and sessions for this blueprint
     await prisma.retreatDayPlan.deleteMany({
@@ -92,19 +99,23 @@ export async function POST(
       },
     });
 
+    metrics.recordCounter("ai_schedules.generated", 1, {
+      blueprintId: id,
+      daysCount: createdDayPlans.length
+    });
+    logger.info("AI schedule generated", {
+      blueprintId: id,
+      daysCount: createdDayPlans.length
+    });
+
     return NextResponse.json({
       success: true,
       blueprint: updatedBlueprint,
       generatedDaysCount: createdDayPlans.length,
     });
   } catch (error) {
-    console.error("Error generating schedule:", error);
-    return NextResponse.json(
-      {
-        error: "Failed to generate schedule",
-        message: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    );
+    logger.error("Error generating schedule", error, { blueprintId: (await params).id });
+    const errorResponse = formatError(error);
+    return NextResponse.json(errorResponse, { status: errorResponse.error.statusCode });
   }
 }

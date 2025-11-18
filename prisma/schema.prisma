@@ -1,0 +1,92 @@
+// Prisma schema for AI Retreat Planner
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model RetreatBlueprint {
+  id                      String             @id @default(cuid())
+  communityId             String?
+  name                    String
+  descriptionMarkdown     String?            @db.Text
+  daysCount               Int
+  participantCountEstimate Int
+  locationConstraintsJson Json?
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+
+  dayPlans                RetreatDayPlan[]
+  logisticsItems          LogisticsItem[]
+
+  @@map("retreat_blueprints")
+}
+
+model RetreatDayPlan {
+  id            String           @id @default(cuid())
+  blueprintId   String
+  dayIndex      Int
+  theme         String?
+  notesMarkdown String?          @db.Text
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  blueprint     RetreatBlueprint @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+  sessions      RetreatSession[]
+
+  @@unique([blueprintId, dayIndex])
+  @@map("retreat_day_plans")
+}
+
+enum SessionType {
+  circle
+  talk
+  break
+  meal
+  ritual
+  free
+}
+
+model RetreatSession {
+  id              String         @id @default(cuid())
+  dayPlanId       String
+  title           String
+  sessionType     SessionType
+  startTimeLocal  String         // Format: HH:MM
+  endTimeLocal    String         // Format: HH:MM
+  facilitatorName String?
+  metaJson        Json?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  dayPlan         RetreatDayPlan @relation(fields: [dayPlanId], references: [id], onDelete: Cascade)
+
+  @@map("retreat_sessions")
+}
+
+enum LogisticsItemType {
+  accommodation
+  transport
+  meal
+  materials
+  other
+}
+
+model LogisticsItem {
+  id                  String             @id @default(cuid())
+  blueprintId         String
+  itemType            LogisticsItemType
+  descriptionMarkdown String             @db.Text
+  costEstimate        Float?
+  metaJson            Json?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  blueprint           RetreatBlueprint   @relation(fields: [blueprintId], references: [id], onDelete: Cascade)
+
+  @@map("logistics_items")
+}
